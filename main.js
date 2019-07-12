@@ -1,15 +1,15 @@
 const CleanCss = require("clean-css");
-
+const fs = require("fs");
 const FileUtil = require("./FileUtil");
 const PrintUtil = require("./PrintUtil");
 const {getAllWordsInContent, obj2Array} = require("./ExtractWordsUtil");
 const SelectorFilter = require("./SelectorFilter");
 const CssTreeWalker = require("./CssTreeWalker");
-
 const path = require('path');
-const {spawn} = require('child_process');
-const pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), 'https://www.sogou.com/']);
 const redis = require('redis'), client = redis.createClient('6379', '127.0.0.1');
+const {spawn} = require('child_process');
+let pyprog = null; // 保存子进程句柄
+
 
 // 存储总数居
 let bag = {}, timer = null;
@@ -72,20 +72,12 @@ const processDataFromRedis = function (str) {
 const unique = function (arr) {
     return Array.from(new Set(arr))
 };
-// 1秒钟从redis中取一次, 处理后放到bag中存储
-timer = setInterval(function () {
-    client.spop("purify_css_queue", function (err, data) {
-        if (err) throw new Error('redis 出现异常！');
-        if (!data) return;
 
-        processDataFromRedis(data);
-    })
-}, 1000);
 // 退出
 process.on("exit", function (code) {
     //进行一些清理工作
     console.log("exiting...", code);
-    clearInterval(timer);
+    if (timer) clearInterval(timer);
     pyprog.kill();
 });
 // 默认OPTIONS
@@ -110,56 +102,74 @@ const minify = (cssSource, options) =>
     new CleanCss(options).minify(cssSource).styles
 
 // 入口函数
-const purify = (allWords, css, options, callback) => {
+const purify = (url, timeout, css, options, callback) => {
     if (typeof options === "function") {
         callback = options
         options = {}
     }
-    options = getOptions(options)
+
+    options = getOptions(options);
+
+    // 启动
+    pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), url]);
+
     //cssString为css源码
     let cssString = FileUtil.filesToSource(css, "css");
-    // content为class使用者
-    // content = FileUtil.filesToSource(searchThrough, "content")
-    PrintUtil.startLog(minify(cssString).length)
 
-    let content = obj2Array(allWords);
-    let wordsInContent = getAllWordsInContent(content), // 一个对象
-        // options.whitelist是一个关键字数组
-        // 添加白名单的一些key到map里面，同时所有信息都挂在返回的对象上面
-        selectorFilter = new SelectorFilter(wordsInContent, options.whitelist),
-        tree = new CssTreeWalker(cssString, [selectorFilter])
+    PrintUtil.startLog(minify(cssString).length);
 
-    tree.beginReading()
-    let source = tree.toString()
+    // 1秒钟从redis中取一次, 处理后放到bag中存储
+    timer = setInterval(function () {
+        client.spop("purify_css_queue", function (err, data) {
+            if (err) throw new Error('redis 出现异常！');
+            if (!data) return;
 
-    source = options.minify ? minify(source, options.cleanCssOptions) : source
-
-    // Option info = true
-    if (options.info) {
-        if (options.minify) {
-            PrintUtil.printInfo(source.length)
-        } else {
-            PrintUtil.printInfo(minify(source, options.cleanCssOptions).length)
-        }
-    }
-
-    // Option rejected = true
-    if (options.rejected && selectorFilter.rejectedSelectors.length) {
-        PrintUtil.printRejected(selectorFilter.rejectedSelectors)
-    }
-
-    if (options.output) {
-        fs.writeFile(options.output, source, err => {
-            if (err) return err
+            processDataFromRedis(data);
         })
-    } else {
-        return callback ? callback(source) : source
-    }
-}
+    }, 1000);
+
+    // 等待时间结束，开始计算
+    setTimeout(() => {
+        let host = new URL(url).host;
+        console.log(host);
+        // content为class使用者
+        let content = obj2Array(bag[host]);
+        let wordsInContent = getAllWordsInContent(content), // 一个对象
+            // options.whitelist是一个关键字数组
+            // 添加白名单的一些key到map里面，同时所有信息都挂在返回的对象上面
+            selectorFilter = new SelectorFilter(wordsInContent, options.whitelist),
+            tree = new CssTreeWalker(cssString, [selectorFilter]);
+
+        tree.beginReading()
+        let source = tree.toString()
+
+        source = options.minify ? minify(source, options.cleanCssOptions) : source
+
+        // Option info = true
+        if (options.info) {
+            if (options.minify) {
+                PrintUtil.printInfo(source.length)
+            } else {
+                PrintUtil.printInfo(minify(source, options.cleanCssOptions).length)
+            }
+        }
+
+        // Option rejected = true
+        if (options.rejected && selectorFilter.rejectedSelectors.length) {
+            PrintUtil.printRejected(selectorFilter.rejectedSelectors)
+        }
+
+        if (options.output) {
+            fs.writeFile(options.output, source, err => {
+                if (err) return err
+            })
+        } else {
+            return callback ? callback(source) : source
+        }
+    }, timeout * 1000);
+};
 
 // 测试结果
-setTimeout(() => {
-    purify(bag[Object.keys(bag)[0]], 'body{height:40px} .no-use{width:2px} p{span{position: relative}}', data => {
-        console.log(data)
-    })
-}, 30 * 1000)
+purify("https://www.sogou.com/", 20, [path.join(__dirname, './test/base.v.1.4.12.css')], data => {
+    console.log(data)
+});

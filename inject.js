@@ -19,10 +19,9 @@
 
             DOMTokenList.prototype[method] = function () {
                 for (var i = 0; i < arguments.length; i++) {
-                    tokenMap.classes.add(arguments[i]);
+                    tokenMap.classes.add("." + arguments[i]);
                 }
                 original.apply(this, arguments);
-                
             };
         };
         createMethod('add');
@@ -58,7 +57,7 @@
             if (attrKey === 'class') {
                 processStringClasses(attrVal);
             } else if (attrKey === 'id') {
-                tokenMap.IDs.add(attrVal);
+                tokenMap.IDs.add("#" + attrVal);
             }
             originalSetA.apply(this, arguments);
         }
@@ -87,7 +86,7 @@
                 if (myArray[1] === "class") {
                     processStringClasses(myArray[2]);
                 } else {
-                    tokenMap.IDs.add(myArray[2]);
+                    tokenMap.IDs.add("#" + myArray[2]);
                 }
             }
             originalInnerHtmlSet.call(this, value);
@@ -109,7 +108,7 @@
                     if (myArray[1] === "class") {
                         processStringClasses(myArray[2]);
                     } else {
-                        tokenMap.IDs.add(myArray[2]);
+                        tokenMap.IDs.add("#" + myArray[2]);
                     }
                 }
             }
@@ -121,7 +120,7 @@
     // 处理有多个class的情况
     function processStringClasses(str) {
         String(str).split(' ').forEach(function (item) {
-            tokenMap.classes.add(item);
+            tokenMap.classes.add("." + item);
         });
     }
 

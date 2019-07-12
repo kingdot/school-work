@@ -1,0 +1,17 @@
+html {
+    font-size: 20px;
+}
+
+a {
+    color: #61bd82;
+}
+
+.active-content{
+    color: #333333;
+}
+
+@media only screen and (min-width: 1380px) {
+    .content {
+        width: 561px !important;
+    }
+}

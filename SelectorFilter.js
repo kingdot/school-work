@@ -19,7 +19,7 @@ class SelectorFilter {
         this.parseWhitelist(whitelist)
     }
 
-    initialize(CssSyntaxTree) {
+    initialize(CssSyntaxTree) { // 监听 readRule
         CssSyntaxTree.on("readRule", this.parseRule.bind(this))
     }
 
@@ -46,24 +46,34 @@ class SelectorFilter {
     }
 
     filterSelectors(selectors) {
-        let contentWords = this.contentWords,
+        let contentWords = Object.keys(this.contentWords),
             rejectedSelectors = this.rejectedSelectors,
             wildcardWhitelist = this.wildcardWhitelist,
             usedSelectors = []
 
         selectors.forEach(selector => {
+            // 新增加：凡是tag选择器和属性选择器 都留下 ??? 这里的 selector 不包含 . # 之类的
+            if ((selector.indexOf('#') === -1) && (selector.indexOf('.') === -1)) { // 标签选择器 or 属性选择器，全部留下
+                usedSelectors.push(selector)
+                return
+            }
+
             if (hasWhitelistMatch(selector, wildcardWhitelist)) {
                 usedSelectors.push(selector)
                 return
             }
-            let words = getAllWordsInSelector(selector),
-                usedWords = words.filter(word => contentWords[word])
 
-            if (usedWords.length === words.length) {
-                usedSelectors.push(selector)
-            } else {
-                rejectedSelectors.push(selector)
+            for (let word of contentWords) {
+                if ((selector.indexOf(word + " ") > -1) ||
+                    (selector.indexOf(word + ",") > -1) ||
+                    (selector.indexOf(word + ":") > -1) ||
+                    (selector === word)) {
+                    usedSelectors.push(selector);
+                    return;
+                }
             }
+
+            rejectedSelectors.push(selector);
         })
 
         return usedSelectors

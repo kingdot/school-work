@@ -36,12 +36,11 @@ const getFilesFromPatternArray = fileArray => {
     // 搜集文件信息
     let sourceFiles = {}
     for (let string of fileArray) {
-        try {
-            // 是否是文件路径  不是通配符
-            fs.statSync(string)
+        // 是目录还是文件
+        let state = fs.statSync(string)
+        if (state.isFile()) {
             sourceFiles[string] = true
-        } catch (e) {
-            // 获取路径通配符 下面的所有文件
+        } else {
             const files = glob.sync(string)
             files.forEach(file => {
                 sourceFiles[file] = true

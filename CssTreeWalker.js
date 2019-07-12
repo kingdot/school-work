@@ -1,5 +1,5 @@
-const { EventEmitter } = require( "events");
-const rework = require( "rework")
+const {EventEmitter} = require("events");
+const rework = require("rework")
 
 const RULE_TYPE = "rule"
 const MEDIA_TYPE = "media"
@@ -7,7 +7,7 @@ const MEDIA_TYPE = "media"
 class CssTreeWalker extends EventEmitter {
     constructor(code, plugins) {
         super()
-        this.startingSource = code
+        this.startingSource = code // css string
         this.ast = null
         plugins.forEach(plugin => {
             plugin.initialize(this)
@@ -15,7 +15,10 @@ class CssTreeWalker extends EventEmitter {
     }
 
     beginReading() {
-        this.ast = rework(this.startingSource).use(this.readPlugin.bind(this))
+        // this.ast = rework(this.startingSource).use(this.readPlugin.bind(this))
+        let tmp = rework(this.startingSource);
+        this.ast = tmp.use(this.readPlugin.bind(this))
+
     }
 
     readPlugin(tree) {

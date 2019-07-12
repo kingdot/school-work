@@ -50,10 +50,10 @@ IDs_from_html = []
 
 for ele in eles:
     oneClass = ele.get_attribute("class") and ele.get_attribute("class").split(' ')
-    IDs_from_html.append(ele.get_attribute("id")) if ele.get_attribute("id") else None
+    IDs_from_html.append("#" + ele.get_attribute("id")) if ele.get_attribute("id") else None
 
     for i in oneClass:
-        classes_from_html.append(i)
+        classes_from_html.append("." + i)
 
 classes_from_html = list(set(classes_from_html))
 IDs_from_html = list(set(IDs_from_html))
