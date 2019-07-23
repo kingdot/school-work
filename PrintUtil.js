@@ -6,9 +6,9 @@ const printInfo = endingLength => {
     console.log(`
     ________________________________________________
     |
-    |   PurifyCSS has reduced the file size by ~ ${sizeReduction}%  
+    |   体积缩减了大约 ~ ${sizeReduction}%  
     |
-    ________________________________________________
+    ______________________________________________
     `)
 }
 
@@ -16,7 +16,7 @@ const printRejected = rejectedTwigs => {
     console.log(`
     ________________________________________________
     |
-    |   PurifyCSS - Rejected selectors:  
+    |   精简掉的 selectors:  
     |   ${rejectedTwigs.join("\n    |\t")}
     |
     ________________________________________________

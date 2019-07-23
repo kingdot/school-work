@@ -20,10 +20,10 @@ const getAllWordsInContent = words => {
 
 const obj2Array = obj => {
 
-    let fromAll = obj['fromJs']['IDs']
-        .concat(obj['fromJs']['classes'])
-        .concat(obj['fromHtml']['IDs'])
-        .concat(obj['fromHtml']['classes']);
+    let fromAll = obj['IDs_from_js']
+        .concat(obj['classes_from_js'])
+        .concat(obj['IDs_from_html'])
+        .concat(obj['classes_from_html']);
 
         return Array.from(new Set(fromAll));
 }

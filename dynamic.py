@@ -1,30 +1,18 @@
 # -*- coding:utf-8 -*-
 
 import os
-import sys
 import json
-import redis
-from threading import Timer
+import sys
 from urllib.parse import urlparse
 
 from selenium import webdriver
 
-r = redis.Redis(host='localhost', port=6379, decode_responses=True)
-
 option = webdriver.ChromeOptions()
 option.add_argument('--headless')
 option.add_argument('--disable-gpu')
+option.add_argument('--log-level=3')
 
 driver = webdriver.Chrome(options=option)
-
-
-def getTokens():
-    # 取出js操作部分的classes, ids 顺便去重
-    classes_from_js = driver.execute_script("tokenMap.classes = Array.from(tokenMap.classes);tokenMap.IDs = Array.from(tokenMap.IDs);return tokenMap;")
-    r.sadd('purify_css_queue', json.dumps(classes_from_js))
-    # sys.stdout.flush()
-    Timer(3, getTokens).start()
-
 
 curPath = os.path.abspath(os.path.dirname(__file__))
 file_object = open(os.path.join(curPath, "inject.js"), 'r', encoding='UTF-8')
@@ -41,6 +29,7 @@ driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {"source": file_
 
 # 去访问指定的url
 driver.get(sys.argv[1])
+#driver.get("https://www.baidu.com/")
 
 eles = driver.find_elements_by_tag_name('*')
 
@@ -61,13 +50,27 @@ IDs_from_html = list(set(IDs_from_html))
 parsed_uri = urlparse(driver.current_url)
 domain = '{uri.netloc}'.format(uri=parsed_uri)
 
-r.sadd('purify_css_queue', json.dumps({"host": domain,"classes_from_html": classes_from_html}))
-# sys.stdout.flush()
-
-r.sadd('purify_css_queue', json.dumps({"host": domain,"IDs_from_html": IDs_from_html}))
-# sys.stdout.flush()
+total_data = {"host": domain, "classes_from_html": classes_from_html, "IDs_from_html": IDs_from_html}
 
 # TODO 执行一些尽可能使js覆盖率更广的操作，比如用户操作，登陆，测试脚本等，此处决定了动态的效果
 # ... ...
 
-getTokens()
+# 取出js操作部分的classes, ids 顺便去重
+classes_from_js = driver.execute_script("tokenMap.classes = Array.from(tokenMap.classes);tokenMap.IDs = Array.from("
+                                        "tokenMap.IDs);return tokenMap;")
+
+driver.quit()
+
+total_data["IDs_from_js"] = classes_from_js["IDs"]
+total_data["classes_from_js"] = classes_from_js["classes"]
+
+# 写文件
+try:
+    dest_file = open(os.path.join(curPath, "py_writing.txt"), 'w', encoding='UTF-8')
+    dest_file.write(json.dumps(total_data))
+finally:
+    dest_file.close()
+    os.rename(os.path.join(curPath, "py_writing.txt"), "py_result.txt")
+
+
+

@@ -14,4 +14,7 @@ a {
     .content {
         width: 561px !important;
     }
+    .no-use{
+        height: 20px;
+    }
 }
