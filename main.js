@@ -23,24 +23,24 @@ const OPTIONS = {
     rejected: false,
     whitelist: [],
     cleanCssOptions: {}
-}
+};
 
 const getOptions = (options = {}) => {
-    let opt = {}
+    let opt = {};
     for (let option in OPTIONS) {
         opt[option] = options[option] || OPTIONS[option]
     }
-    return opt
-}
+    return opt;
+};
 // 压缩
 const minify = (cssSource, options) =>
-    new CleanCss(options).minify(cssSource).styles
+    new CleanCss(options).minify(cssSource).styles;
 
 // 入口函数
 const purify = (url, css, options, callback) => {
     if (typeof options === "function") {
-        callback = options
-        options = {}
+        callback = options;
+        options = {};
     }
 
     options = getOptions(options);
@@ -93,10 +93,10 @@ function calculate(dataStr, cssString, options, callback) {
         selectorFilter = new SelectorFilter(wordsInContent, options.whitelist),
         tree = new CssTreeWalker(cssString, [selectorFilter]);
 
-    tree.beginReading()
-    let source = tree.toString()
+    tree.beginReading();
+    let source = tree.toString();
 
-    source = options.minify ? minify(source, options.cleanCssOptions) : source
+    source = options.minify ? minify(source, options.cleanCssOptions) : source;
 
     // Option info = true, 打印压缩前与压缩后的体积变化
     if (options.info) {
@@ -122,7 +122,7 @@ function calculate(dataStr, cssString, options, callback) {
 }
 
 // 测试结果
-purify("https://www.sogou.com", [path.join(__dirname, './test/base.css')], {
+purify("http://localhost:5901/index.html", [path.join(__dirname, './test/dist/base.css')], {
     info: true
 }, data => {
     console.log(data)
