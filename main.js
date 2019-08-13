@@ -37,7 +37,7 @@ const minify = (cssSource, options) =>
     new CleanCss(options).minify(cssSource).styles;
 
 // 入口函数
-const purify = (url, otherCss, options, callback) => {
+const purify = (url, otherCss, otherJs, options, callback) => {
     if (typeof options === "function") {
         callback = options;
         options = {};
@@ -50,7 +50,7 @@ const purify = (url, otherCss, options, callback) => {
     PrintUtil.startLog(minify(cssString).length); // 统计的是压缩后的长度
 
     // 启动
-    pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), url]);
+    pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), url, otherJs]);
 
     // 1秒钟从指定目录中查看一次
     let isFinish = false;
@@ -126,7 +126,7 @@ function calculate(dataStr, cssString, options, callback) {
 }
 
 // 测试结果
-purify("https://www.sogou.com/", '', {
+purify("https://www.sogou.com/", '', '', {
     info: true
 }, data => {
     console.log(data)

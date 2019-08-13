@@ -16,12 +16,22 @@ driver = webdriver.Chrome(options=option)
 
 curPath = os.path.abspath(os.path.dirname(__file__))
 inject_file_object = open(os.path.join(curPath, "inject.js"), 'r', encoding='UTF-8')
+
+extra_js_object = None
+extra_js = None
+
 try:
     # file_context是一个string，读取完后，就失去了对原文件引用
     inject_text = inject_file_object.read()
+
+    if len(sys.argv) > 2 and sys.argv[2]:
+        extra_js_object = open(sys.argv[2], 'r', encoding='UTF-8')
+        extra_js = extra_js_object.read()
 finally:
     # 关闭文件
     inject_file_object.close()
+    if extra_js_object:
+        extra_js_object.close()
 # 注入hook代码, 注意返回值并不是js代码的返回值，而是一个script描述符
 driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {"source": inject_text})
 
@@ -52,6 +62,8 @@ total_data = {"host": domain, "classes_from_html": classes_from_html, "IDs_from_
 
 # TODO 执行一些尽可能使js覆盖率更广的操作，比如用户操作，登陆，测试脚本等，此处决定了动态的效果
 # ... ...
+if extra_js_object:
+    driver.execute_script(extra_js)
 
 # 取出js操作部分的classes, ids 顺便去重
 classes_from_js = driver.execute_script("tokenMap.classes = Array.from(tokenMap.classes);tokenMap.IDs = Array.from("
