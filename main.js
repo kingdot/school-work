@@ -37,7 +37,7 @@ const minify = (cssSource, options) =>
     new CleanCss(options).minify(cssSource).styles;
 
 // 入口函数
-const purify = (url, css, options, callback) => {
+const purify = (url, otherCss, options, callback) => {
     if (typeof options === "function") {
         callback = options;
         options = {};
@@ -45,13 +45,12 @@ const purify = (url, css, options, callback) => {
 
     options = getOptions(options);
 
+    //cssString为css源码
+    let cssString = FileUtil.filesToSource(otherCss, "css");
+    PrintUtil.startLog(minify(cssString).length); // 统计的是压缩后的长度
+
     // 启动
     pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), url]);
-
-    //cssString为css源码
-    let cssString = FileUtil.filesToSource(css, "css");
-
-    PrintUtil.startLog(minify(cssString).length); // 统计的是压缩后的长度
 
     // 1秒钟从指定目录中查看一次
     let isFinish = false;
@@ -63,18 +62,23 @@ const purify = (url, css, options, callback) => {
         }
 
         timer = setTimeout(function () {
-            let pyResultPath = path.join(__dirname, 'py_result.txt');
-            fs.exists(pyResultPath, (exists) => {
-                if (exists) {
-                    isFinish = true;
-                    let dataStr = fs.readFileSync(pyResultPath, "utf-8");
+            let pyUseResultPath = path.join(__dirname, 'py_use_result.txt');
+            let pyAllResultPath = path.join(__dirname, 'py_all_result.txt');
 
-                    calculate(dataStr, cssString, options, callback);
-                    fs.unlinkSync(pyResultPath);
-                } else {
-                    timerWrapper();
-                }
-            })
+            if (fs.existsSync(pyUseResultPath) && fs.existsSync(pyAllResultPath)) {
+                isFinish = true;
+                let dataStr = fs.readFileSync(pyUseResultPath, "utf-8");
+
+                //cssString为css源码
+                cssString += fs.readFileSync(pyAllResultPath, "utf-8");
+                PrintUtil.startLog(minify(cssString).length); // 统计的是压缩后的长度
+
+                calculate(dataStr, cssString, options, callback);
+                fs.unlinkSync(pyUseResultPath);
+                fs.unlinkSync(pyAllResultPath);
+            } else {
+                timerWrapper();
+            }
         }, 1000);
     })();
 
@@ -122,7 +126,7 @@ function calculate(dataStr, cssString, options, callback) {
 }
 
 // 测试结果
-purify("http://localhost:5901/index.html", [path.join(__dirname, './test/dist/base.css')], {
+purify("https://www.sogou.com/", '', {
     info: true
 }, data => {
     console.log(data)

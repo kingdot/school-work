@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
-import os
 import json
+import os
 import sys
 from urllib.parse import urlparse
 
@@ -15,21 +15,19 @@ option.add_argument('--log-level=3')
 driver = webdriver.Chrome(options=option)
 
 curPath = os.path.abspath(os.path.dirname(__file__))
-file_object = open(os.path.join(curPath, "inject.js"), 'r', encoding='UTF-8')
-
+inject_file_object = open(os.path.join(curPath, "inject.js"), 'r', encoding='UTF-8')
 try:
     # file_context是一个string，读取完后，就失去了对原文件引用
-    file_context = file_object.read()
+    inject_text = inject_file_object.read()
 finally:
     # 关闭文件
-    file_object.close()
-
+    inject_file_object.close()
 # 注入hook代码, 注意返回值并不是js代码的返回值，而是一个script描述符
-driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {"source": file_context})
+driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {"source": inject_text})
 
 # 去访问指定的url
 driver.get(sys.argv[1])
-#driver.get("https://www.baidu.com/")
+#driver.get("https://www.sogou.com/")
 
 eles = driver.find_elements_by_tag_name('*')
 
@@ -44,8 +42,8 @@ for ele in eles:
     for i in oneClass:
         classes_from_html.append("." + i)
 
-classes_from_html = list(set(classes_from_html))
-IDs_from_html = list(set(IDs_from_html))
+# classes_from_html = list(set(classes_from_html))
+# IDs_from_html = list(set(IDs_from_html))
 
 parsed_uri = urlparse(driver.current_url)
 domain = '{uri.netloc}'.format(uri=parsed_uri)
@@ -59,6 +57,12 @@ total_data = {"host": domain, "classes_from_html": classes_from_html, "IDs_from_
 classes_from_js = driver.execute_script("tokenMap.classes = Array.from(tokenMap.classes);tokenMap.IDs = Array.from("
                                         "tokenMap.IDs);return tokenMap;")
 
+cssString = driver.execute_script("var cssString = '',sheet_len = document.styleSheets.length;" +
+                                  "for(var i=0; i<sheet_len; i++){" +
+                                  "var rules_len = document.styleSheets[i].cssRules.length;" +
+                                  "for(var j = 0; j<rules_len; j++){cssString += (document.styleSheets[i].cssRules["
+                                  "j].cssText+'\\n')}} return cssString.trim()")
+
 driver.quit()
 
 total_data["IDs_from_js"] = classes_from_js["IDs"]
@@ -66,11 +70,14 @@ total_data["classes_from_js"] = classes_from_js["classes"]
 
 # 写文件
 try:
-    dest_file = open(os.path.join(curPath, "py_writing.txt"), 'w', encoding='UTF-8')
-    dest_file.write(json.dumps(total_data))
+    use_file = open(os.path.join(curPath, "py_use_writing.txt"), 'w', encoding='UTF-8')
+    all_file = open(os.path.join(curPath, "py_all_writing.txt"), 'w', encoding='UTF-8')
+
+    use_file.write(json.dumps(total_data))
+    all_file.write(cssString)
+
 finally:
-    dest_file.close()
-    os.rename(os.path.join(curPath, "py_writing.txt"), "py_result.txt")
-
-
-
+    use_file.close()
+    all_file.close()
+    os.rename(os.path.join(curPath, "py_use_writing.txt"), "py_use_result.txt")
+    os.rename(os.path.join(curPath, "py_all_writing.txt"), "py_all_result.txt")
