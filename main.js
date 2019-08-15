@@ -47,7 +47,6 @@ const purify = (url, otherCss, otherJs, options, callback) => {
 
     //cssString为css源码
     let cssString = FileUtil.filesToSource(otherCss, "css");
-    PrintUtil.startLog(minify(cssString).length); // 统计的是压缩后的长度
 
     // 启动
     pyprog = spawn('python', [path.join(__dirname, 'dynamic.py'), url, otherJs]);
