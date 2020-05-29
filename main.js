@@ -124,9 +124,11 @@ function calculate(dataStr, cssString, options, callback) {
     }
 }
 
+module.exports = {purify};
+
 // 测试结果
-purify("https://www.sogou.com/", '', '', {
-    info: true
-}, data => {
-    console.log(data)
-});
+// purify("https://www.sogou.com/", '', '', {
+//     info: true
+// }, data => {
+//     console.log(data)
+// });
