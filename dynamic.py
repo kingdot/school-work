@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from urllib.parse import urlparse
+import requests
 
 from selenium import webdriver
 
@@ -71,9 +72,22 @@ classes_from_js = driver.execute_script("tokenMap.classes = Array.from(tokenMap.
 
 cssString = driver.execute_script("var cssString = '',sheet_len = document.styleSheets.length;" +
                                   "for(var i=0; i<sheet_len; i++){" +
-                                  "var rules_len = document.styleSheets[i].cssRules.length;" +
-                                  "for(var j = 0; j<rules_len; j++){cssString += (document.styleSheets[i].cssRules["
-                                  "j].cssText+'\\n')}} return cssString.trim()")
+                                  "var sheet = document.styleSheets[i];if(sheet.href){continue}" +
+                                  "var rules = sheet.rules || sheet.cssRules;" +
+                                  "for(var j = 0; j<rules.length; j++){cssString += rules[j].cssText}}" +
+                                  "return cssString.trim()")
+# 拉取跨域样式
+links = driver.find_elements_by_tag_name('link')
+linkCss = ""
+for link in links:
+    if link.get_attribute("rel") == "stylesheet":
+        href = link.get_attribute("href")
+
+        if href:
+            linkCss += requests.get(href).text or ""
+
+cssString += linkCss
+
 
 driver.quit()
 
